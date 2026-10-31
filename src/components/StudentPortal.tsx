@@ -63,7 +63,7 @@ export const StudentPortal: React.FC = () => {
     try {
       const [jobsRes, appsRes] = await Promise.all([
         fetch('/api/jobs'),
-        fetch(`/api/applications?studentId=${user?.id || 'usr_student_alex'}`)
+        fetch(`/api/applications?studentId=${user?.id || 'usr_student_aarav'}`)
       ]);
       if (jobsRes.ok) {
         const jData = await jobsRes.json();
@@ -153,11 +153,11 @@ export const StudentPortal: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jobId: applyingJob.id,
-          studentId: user?.id || 'usr_student_alex',
-          studentName: user?.name || 'Alex Chen',
-          studentEmail: user?.email || 'alex.chen@apex.edu',
-          studentUniversity: user?.organization || 'Institute of Advanced Technology',
-          studentDegree: user?.degree || 'B.Tech Computer Science',
+          studentId: user?.id || 'usr_student_aarav',
+          studentName: user?.name || 'Aarav Sharma',
+          studentEmail: user?.email || 'aarav.sharma@cu.edu.in',
+          studentUniversity: user?.organization || 'Chandigarh University (CU Punjab)',
+          studentDegree: user?.degree || 'B.Tech CSE (Cloud & AI)',
           studentGpa: user?.gpa || 3.88,
           studentSkills: user?.skills || [],
           jobTitle: applyingJob.title,
@@ -209,17 +209,17 @@ export const StudentPortal: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">{user?.name || 'Alex Chen'}</h1>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">{user?.name || 'Aarav Sharma'}</h1>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
                 Verified Candidate
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-1">
-              <span>{user?.degree || 'B.Tech Computer Science'}</span>
+              <span>{user?.degree || 'B.Tech CSE (Cloud & AI)'}</span>
               <span aria-hidden="true">·</span>
-              <span>{user?.organization || 'Institute of Advanced Technology'}</span>
+              <span>{user?.organization || 'Chandigarh University (CU Punjab)'}</span>
               <span aria-hidden="true">·</span>
-              <span className="font-mono">GPA {user?.gpa || '3.88'} / 4.0</span>
+              <span className="font-mono">CGPA {user?.gpa || '8.92'} / 10.0</span>
             </div>
           </div>
         </div>
@@ -295,23 +295,27 @@ export const StudentPortal: React.FC = () => {
                 <div className="flex items-center justify-between mt-2">
                   <button
                     onClick={() => {
-                      setResumeText(`Alex Chen
-Computer Science & Engineering, Institute of Advanced Technology (GPA 3.88/4.0)
-Graduation: May 2026
+                      setResumeText(`Aarav Sharma
+B.Tech Computer Science & Engineering, Chandigarh University (CU Punjab)
+CGPA: 8.92 / 10.0 | Class of 2026
 
-TECHNICAL SKILLS:
-- Languages: TypeScript, JavaScript, Python, C++, SQL, Go
+TECHNICAL PROFICIENCIES:
+- Languages: TypeScript, JavaScript, Python, C++, Java, SQL
 - Frameworks & Libraries: React, Node.js, Express, PyTorch, Tailwind CSS, Next.js
-- Cloud & Tools: Docker, Kubernetes, AWS, PostgreSQL, Git, Linux, Redis
+- Cloud & Infrastructure: Docker, Kubernetes, AWS, PostgreSQL, Redis, Linux, Git
 
-PROJECTS:
-1. Distributed Cache Engine: Built a high-throughput in-memory LRU cache with Redis-compatible protocol using Node.js and TypeScript.
-2. AI Document Summarizer: Fine-tuned open LLM for scientific paper parsing with 91% recall on PubMed citations.
-3. Campus Hackathon First Prize: Automated peer-to-peer tutoring matching platform with 1,200 active student users.`);
+FLAGSHIP PROJECTS:
+1. Distributed Caching Engine: High-throughput in-memory LRU cache with Redis-compatible protocol using Node.js & TypeScript.
+2. AI Research Paper Summarizer: Fine-tuned open LLM for biomedical papers with 92% benchmark accuracy.
+3. Campus Placement Portal: Built real-time slot scheduling web app used by 3,500+ university candidates during mock placement season.
+
+EXPERIENCE:
+- Software Engineering Intern, FinEdge Technologies (Gurugram) - Summer 2025
+- Undergrad Research Fellow, Distributed Systems & AI Lab (CU Punjab) - 2024 to Present`);
                     }}
                     className="text-[11px] text-teal-700 dark:text-teal-400 font-medium hover:underline"
                   >
-                    Load Alex Chen's sample resume
+                    Load Aarav Sharma's sample resume (CU Punjab)
                   </button>
 
                   <button

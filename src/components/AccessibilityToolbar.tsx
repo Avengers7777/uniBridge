@@ -47,7 +47,7 @@ export const AccessibilityToolbar: React.FC<Props> = ({ activeView, setActiveVie
               }`}
             >
               <GraduationCap className="w-3 h-3" />
-              <span>Student</span>
+              <span>Student (Aarav, CU)</span>
             </button>
             <button
               onClick={() => handleRoleSwitch('tpo')}
@@ -58,7 +58,7 @@ export const AccessibilityToolbar: React.FC<Props> = ({ activeView, setActiveVie
               }`}
             >
               <ShieldCheck className="w-3 h-3" />
-              <span>University TPO</span>
+              <span>TPO (Prof. Harpreet, LPU)</span>
             </button>
             <button
               onClick={() => handleRoleSwitch('recruiter')}
@@ -69,7 +69,7 @@ export const AccessibilityToolbar: React.FC<Props> = ({ activeView, setActiveVie
               }`}
             >
               <Briefcase className="w-3 h-3" />
-              <span>Corporate Recruiter</span>
+              <span>Recruiter (Ananya, NovaTech)</span>
             </button>
             <button
               onClick={() => {

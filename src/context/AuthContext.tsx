@@ -113,9 +113,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginAsDemoUser = async (targetRole: UserRole) => {
     const roleEmailMap: Record<UserRole, string> = {
-      student: 'alex.chen@apex.edu',
-      tpo: 'dr.vance@stanford-tech.edu',
-      recruiter: 'marcus.chen@novatech.io',
+      student: 'aarav.sharma@cu.edu.in',
+      tpo: 'tpo.director@lpu.co.in',
+      recruiter: 'ananya.iyer@novatech.in',
       admin: 'admin@nexuscollab.org'
     };
 

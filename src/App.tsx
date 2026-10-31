@@ -7,6 +7,7 @@ import { StudentPortal } from './components/StudentPortal.tsx';
 import { TpoPortal } from './components/TpoPortal.tsx';
 import { RecruiterPortal } from './components/RecruiterPortal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
+import { LoginPage } from './components/LoginPage.tsx';
 import { Footer } from './components/Footer.tsx';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import { UserRole } from './types/index.ts';
@@ -22,6 +23,15 @@ const AppContent: React.FC = () => {
   };
 
   const renderMainContent = () => {
+    // Dedicated Full-Page Login View with High-Fidelity Design and Animations
+    if (activeView === 'login') {
+      return (
+        <LoginPage
+          onBackToHome={() => setActiveView('landing')}
+          onSuccessRedirect={() => setActiveView('portal')}
+        />
+      );
+    }
     // If specific navigation views requested:
     if (activeView === 'portal') {
       if (!user) {
@@ -84,18 +94,22 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors selection:bg-slate-800 selection:text-white">
       {/* Accessibility & Role Evaluator Bar */}
-      <AccessibilityToolbar
-        activeView={activeView}
-        setActiveView={setActiveView}
-        onOpenAuth={() => setIsAuthOpen(true)}
-      />
+      {activeView !== 'login' && (
+        <AccessibilityToolbar
+          activeView={activeView}
+          setActiveView={setActiveView}
+          onOpenAuth={() => setActiveView('login')}
+        />
+      )}
 
       {/* Top Bar Contract Navigation */}
-      <Navbar
-        activeView={activeView}
-        setActiveView={setActiveView}
-        onOpenAuth={() => setIsAuthOpen(true)}
-      />
+      {activeView !== 'login' && (
+        <Navbar
+          activeView={activeView}
+          setActiveView={setActiveView}
+          onOpenAuth={() => setActiveView('login')}
+        />
+      )}
 
       {/* Main Viewport Content */}
       <main className="flex-1">
@@ -103,12 +117,13 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* Institutional Footer */}
-      <Footer />
+      {activeView !== 'login' && <Footer />}
 
       {/* Authentication & Profile Modal */}
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
+        onSwitchToFullPage={() => setActiveView('login')}
       />
 
       {/* Floating System Notification */}

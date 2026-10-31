@@ -181,11 +181,11 @@ export const LandingPage: React.FC<Props> = ({ onExploreRole, onOpenAuth, onNavi
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               <div>
-                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">92.4%</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">94.2%</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Verified Campus Placement Rate</p>
               </div>
               <div>
-                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">$14.8 LPA</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">₹14.8 LPA</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Average Engineering Package</p>
               </div>
               <div>
@@ -195,6 +195,98 @@ export const LandingPage: React.FC<Props> = ({ onExploreRole, onOpenAuth, onNavi
               <div>
                 <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">84</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Active Institutional MoUs</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Indian Universities & Corporate Ecosystem Ribbon */}
+        <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <span className="text-[11px] font-bold text-teal-800 dark:text-teal-400 uppercase tracking-wider">
+                  Partner Institutional Ecosystem
+                </span>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Trusted by Training & Placement Cells (TPOs) across Premier Indian Universities & Tech Hubs
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <span className="px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 font-mono text-[11px]">
+                  Punjab & Pan-India Network
+                </span>
+              </div>
+            </div>
+
+            {/* University Badges Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 pt-4">
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400">Punjab Premier</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 font-mono">NAAC A+</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">Chandigarh University</p>
+                  <p className="text-[11px] text-slate-500">CU Punjab · Mohali Campus</p>
+                </div>
+                <p className="text-[10px] text-teal-700 dark:text-teal-300 font-medium mt-2 pt-1 border-t border-slate-200/60 dark:border-slate-700">
+                  9,500+ Placement Offers · ₹54.7 LPA Highest
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400">Punjab Premier</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 font-mono">NIRF Top 40</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">Lovely Professional University</p>
+                  <p className="text-[11px] text-slate-500">LPU Punjab · Phagwara Campus</p>
+                </div>
+                <p className="text-[10px] text-teal-700 dark:text-teal-300 font-medium mt-2 pt-1 border-t border-slate-200/60 dark:border-slate-700">
+                  3,000+ Recruiters · ₹64 LPA Highest Domestic
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400">Institute of National Importance</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 font-mono">IIT</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">IIT Ropar</p>
+                  <p className="text-[11px] text-slate-500">Indian Institute of Tech, Punjab</p>
+                </div>
+                <p className="text-[10px] text-teal-700 dark:text-teal-300 font-medium mt-2 pt-1 border-t border-slate-200/60 dark:border-slate-700">
+                  Core AI & Systems Research Consortia
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400">National Institute</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 font-mono">NIT</span>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">NIT Jalandhar</p>
+                  <p className="text-[11px] text-slate-500">Dr. B.R. Ambedkar NIT, Punjab</p>
+                </div>
+                <p className="text-[10px] text-teal-700 dark:text-teal-300 font-medium mt-2 pt-1 border-t border-slate-200/60 dark:border-slate-700">
+                  Engineering & Industrial Automation MoUs
+                </p>
+              </div>
+            </div>
+
+            {/* Additional Pan-India institutes banner */}
+            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Also integrated with:</span>
+              <div className="flex flex-wrap items-center gap-2 font-medium">
+                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300">IIT Delhi</span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300">IIT Bombay</span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300">Thapar University (TIET Patiala)</span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300">BITS Pilani</span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300">DTU Delhi</span>
               </div>
             </div>
           </div>

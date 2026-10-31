@@ -50,14 +50,14 @@ export const TpoPortal: React.FC = () => {
   const [newDriveCompany, setNewDriveCompany] = useState('');
   const [newDriveTitle, setNewDriveTitle] = useState('');
   const [newDriveDate, setNewDriveDate] = useState('2026-11-20');
-  const [newDriveVenue, setNewDriveVenue] = useState('Innovation Auditorium Hall B');
-  const [newDrivePackage, setNewDrivePackage] = useState('$130,000 - $150,000');
+  const [newDriveVenue, setNewDriveVenue] = useState('Shanti Devi Mittal Auditorium, LPU Campus');
+  const [newDrivePackage, setNewDrivePackage] = useState('₹18.0 - ₹24.0 LPA');
 
   const [showMouModal, setShowMouModal] = useState(false);
   const [newMouCompany, setNewMouCompany] = useState('');
   const [newMouTitle, setNewMouTitle] = useState('');
   const [newMouQuota, setNewMouQuota] = useState('20');
-  const [newMouBudget, setNewMouBudget] = useState('$200,000 / year');
+  const [newMouBudget, setNewMouBudget] = useState('₹35,00,000 / year');
 
   const fetchTpoData = async () => {
     try {
@@ -157,7 +157,7 @@ export const TpoPortal: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          universityName: user?.organization || 'Institute of Advanced Technology',
+          universityName: user?.organization || 'Lovely Professional University (LPU Punjab)',
           companyName: newMouCompany,
           mouTitle: newMouTitle,
           signedDate: new Date().toISOString().split('T')[0],
@@ -165,7 +165,7 @@ export const TpoPortal: React.FC = () => {
           focusAreas: ['Student Internships', 'Joint Research Lab', 'Curriculum Advisory'],
           studentInternshipsCommitted: Number(newMouQuota) || 20,
           researchBudget: newMouBudget,
-          keyContact: user?.name || 'Dr. Eleanor Vance',
+          keyContact: user?.name || 'Prof. Harpreet Singh',
           highlights: ['Direct placement fast-track for top 15% batch graduates']
         })
       });
@@ -192,14 +192,14 @@ export const TpoPortal: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-                {user?.name || 'Dr. Eleanor Vance'}
+                {user?.name || 'Prof. Harpreet Singh'}
               </h1>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
                 Institutional Authority
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {user?.title || 'Dean of Corporate Alliances & Placement'} · {user?.organization || 'Institute of Advanced Technology'}
+              {user?.title || 'Dean of Corporate Alliances & Placement'} · {user?.organization || 'Lovely Professional University (LPU Punjab)'}
             </p>
           </div>
         </div>
@@ -275,9 +275,9 @@ export const TpoPortal: React.FC = () => {
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-1">
               <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Average Package</span>
               <p className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
-                ${stats?.avgPackageLPA || 14.8} LPA
+                ₹{stats?.avgPackageLPA || 14.8} LPA
               </p>
-              <p className="text-[11px] text-slate-400">Highest: ${stats?.highestPackageLPA || 54.0} LPA</p>
+              <p className="text-[11px] text-slate-400">Highest: ₹{stats?.highestPackageLPA || 54.0} LPA</p>
             </div>
 
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 space-y-1">

@@ -45,7 +45,7 @@ export const RecruiterPortal: React.FC = () => {
   const [selectedApp, setSelectedApp] = useState<JobApplication | null>(null);
   const [interviewModalApp, setInterviewModalApp] = useState<JobApplication | null>(null);
   const [interviewDate, setInterviewDate] = useState('2026-11-10');
-  const [interviewTime, setInterviewTime] = useState('14:30 EST');
+  const [interviewTime, setInterviewTime] = useState('14:30 IST');
   const [interviewMode, setInterviewMode] = useState('Google Meet (Virtual)');
   const [interviewNotes, setInterviewNotes] = useState('Technical architecture and algorithmic problem solving.');
 
@@ -53,11 +53,11 @@ export const RecruiterPortal: React.FC = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newType, setNewType] = useState<JobType>('internship');
   const [newMode, setNewMode] = useState<WorkMode>('hybrid');
-  const [newLocation, setNewLocation] = useState('San Francisco, CA / Hybrid');
-  const [newSalary, setNewSalary] = useState('$5,500 / month + Relocation');
-  const [newDuration, setNewDuration] = useState('12 Weeks');
+  const [newLocation, setNewLocation] = useState('Bengaluru / Mohali, Punjab (Hybrid)');
+  const [newSalary, setNewSalary] = useState('₹60,000 / month + Relocation');
+  const [newDuration, setNewDuration] = useState('6 Months');
   const [newSkills, setNewSkills] = useState('TypeScript, Node.js, Docker, SQL');
-  const [newMinGpa, setNewMinGpa] = useState('3.4');
+  const [newMinGpa, setNewMinGpa] = useState('7.5');
   const [newDesc, setNewDesc] = useState('');
 
   const fetchRecruiterData = async () => {
@@ -125,8 +125,8 @@ export const RecruiterPortal: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          recruiterId: user?.id || 'usr_recruiter_marcus',
-          companyName: user?.organization || 'NovaTech Enterprise Solutions',
+          recruiterId: user?.id || 'usr_recruiter_ananya',
+          companyName: user?.organization || 'NovaTech India Enterprise Solutions',
           title: newTitle,
           roleType: newType,
           department: 'Engineering Division',
@@ -135,8 +135,8 @@ export const RecruiterPortal: React.FC = () => {
           stipendOrSalary: newSalary,
           duration: newDuration,
           requiredSkills: reqSkills,
-          minGpa: Number(newMinGpa) || 3.2,
-          description: newDesc || `Join ${user?.organization || 'our engineering team'} to work on high-impact technology initiatives.`,
+          minGpa: Number(newMinGpa) || 7.0,
+          description: newDesc || `Join ${user?.organization || 'our engineering team'} to work on high-impact technology initiatives across India.`,
           status: 'active'
         })
       });
@@ -178,14 +178,14 @@ export const RecruiterPortal: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-                {user?.name || 'Marcus Chen'}
+                {user?.name || 'Ananya Iyer'}
               </h1>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
                 Verified Recruiter
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {user?.title || 'Principal Campus Recruitment Lead'} · {user?.organization || 'NovaTech Enterprise Solutions'}
+              {user?.title || 'Principal Campus Recruitment Lead (India)'} · {user?.organization || 'NovaTech India Enterprise Solutions'}
             </p>
           </div>
         </div>
