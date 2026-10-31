@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+  }
+
+  /* Accessibility High Contrast Mode overrides */
+  .high-contrast {
+    --contrast-border: #000000;
+    --contrast-text: #000000;
+  }
+  .dark.high-contrast {
+    --contrast-border: #ffffff;
+    --contrast-text: #ffffff;
+  }
+
+  .high-contrast * {
+    text-shadow: none !important;
+  }
+  
+  .high-contrast button,
+  .high-contrast a,
+  .high-contrast input,
+  .high-contrast select,
+  .high-contrast textarea {
+    outline-width: 2px !important;
+  }
+  
+  .high-contrast .border-slate-200,
+  .high-contrast .border-slate-300,
+  .high-contrast .border-slate-700,
+  .high-contrast .border-slate-800 {
+    border-color: currentColor !important;
+    border-width: 1.5px !important;
+  }
+
+  /* Font scale accessibility */
+  .text-scale-lg {
+    font-size: 110%;
+  }
+  .text-scale-xl {
+    font-size: 125%;
+  }
+}

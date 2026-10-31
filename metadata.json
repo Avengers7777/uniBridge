@@ -1,0 +1,6 @@
+{
+  "name": "NexusCollab: Academia-Industry Placement & Skill Portal",
+  "description": "Enterprise AI-powered academia-industry collaboration platform for university placement cells, students, and corporate recruiters featuring resume skill extraction, skill-gap analysis, and placement management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
