@@ -14,7 +14,15 @@ const ai = apiKey
     })
   : null;
 
-
+function withTimeout<T>(promise: Promise<T>, ms = 4500): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`AI generation timed out after ${ms}ms`)), ms);
+    promise.then(
+      res => { clearTimeout(timer); resolve(res); },
+      err => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
 
 export async function extractSkillsFromResume(resumeText: string): Promise<ExtractedResumeSkills> {
   if (!resumeText || resumeText.trim().length < 10) {
@@ -23,8 +31,8 @@ export async function extractSkillsFromResume(resumeText: string): Promise<Extra
 
   if (ai) {
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await withTimeout(ai.models.generateContent({
+        model: 'gemini-2.5-flash',
         contents: `You are an expert technical talent assessor and university placement evaluator. Analyze the following resume/profile text and extract structured technical skills, soft skills, domain specializations, recommended placement roles, and a professional summary.\n\nResume Content:\n${resumeText}`,
         config: {
           responseMimeType: 'application/json',
@@ -58,7 +66,7 @@ export async function extractSkillsFromResume(resumeText: string): Promise<Extra
             required: ['technicalSkills', 'softSkills', 'domainAreas', 'suggestedRoles', 'summary', 'experienceLevel'],
           },
         },
-      });
+      }));
 
       const parsed = JSON.parse(response.text || '{}');
       return parsed;
@@ -105,8 +113,8 @@ ${jobDescription ? `Job Specifics: ${jobDescription}` : ''}
 Conduct a rigorous skill-gap analysis. Compare the candidate's verified skills against the latest 2026 hiring benchmarks for "${targetRole}".
 Identify matched skills, critical missing skills, match percentage, market demand score, actionable bridging curriculum pathways with estimated study weeks, and concrete project ideas to bridge the gap.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await withTimeout(ai.models.generateContent({
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -157,7 +165,7 @@ Identify matched skills, critical missing skills, match percentage, market deman
             ],
           },
         },
-      });
+      }));
 
       const result = JSON.parse(response.text || '{}');
       return {
@@ -220,8 +228,8 @@ Current Academic Modules: ${JSON.stringify(currentModules)}
 Evaluate how well these academic modules align with current industry hiring demands in top technology enterprises.
 Identify modern industry skills missing from standard academic syllabi (such as generative AI guardrails, distributed consensus, cloud-native DevOps, observability, zero-trust security), compute an alignment score, and suggest actionable curriculum modules that partner companies can co-deliver.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await withTimeout(ai.models.generateContent({
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -258,7 +266,7 @@ Identify modern industry skills missing from standard academic syllabi (such as 
             required: ['department', 'semester', 'alignmentScore', 'emergingIndustryDemands', 'recommendedUpdates'],
           },
         },
-      });
+      }));
 
       const parsed = JSON.parse(response.text || '{}');
       return {
