@@ -1,6 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { isMongoDBActive } from "./mongodb.js";
+import {
+  UserModel,
+  JobModel,
+  ApplicationModel,
+  PartnershipModel,
+  DriveModel,
+  StatsModel
+} from "./models/index.js";
 const DATA_DIR = path.resolve(import.meta.dirname, "data");
 const DB_FILE = path.join(DATA_DIR, "portal-database.json");
 function hashPassword(password) {
@@ -486,19 +495,43 @@ class DatabaseService {
     this.saveDatabase(this.db);
   }
   // Users
-  getUsers() {
+  async getUsers() {
+    if (isMongoDBActive()) {
+      try {
+        const users = await UserModel.find().select("-passwordHash").lean();
+        return users.map((u) => ({ ...u, id: u.id }));
+      } catch (err) {
+        console.error("MongoDB getUsers error:", err);
+      }
+    }
     return this.db.users.map(({ passwordHash: _, ...rest }) => rest);
   }
-  getUserById(id) {
+  async getUserById(id) {
+    if (isMongoDBActive()) {
+      try {
+        const user = await UserModel.findOne({ id }).select("-passwordHash").lean();
+        if (user) return { ...user, id: user.id };
+      } catch (err) {
+        console.error("MongoDB getUserById error:", err);
+      }
+    }
     const user = this.db.users.find((u) => u.id === id);
     if (!user) return void 0;
     const { passwordHash: _, ...rest } = user;
     return rest;
   }
-  getUserByEmail(email) {
+  async getUserByEmail(email) {
+    if (isMongoDBActive()) {
+      try {
+        const user = await UserModel.findOne({ email: new RegExp(`^${email.trim()}$`, "i") }).lean();
+        if (user) return { ...user, id: user.id };
+      } catch (err) {
+        console.error("MongoDB getUserByEmail error:", err);
+      }
+    }
     return this.db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
   }
-  createUser(user) {
+  async createUser(user) {
     const id = `usr_${user.role}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const passwordHash = hashPassword(user.password || "demo123");
     const { password: _, ...profileData } = user;
@@ -507,12 +540,36 @@ class DatabaseService {
       id,
       passwordHash
     };
+    if (isMongoDBActive()) {
+      try {
+        await UserModel.create(newUser);
+      } catch (err) {
+        console.error("MongoDB createUser error:", err);
+      }
+    }
     this.db.users.push(newUser);
     this.sync();
     const { passwordHash: __, ...sanitized } = newUser;
     return sanitized;
   }
-  updateUser(id, updates) {
+  async updateUser(id, updates) {
+    if (isMongoDBActive()) {
+      try {
+        const updated = await UserModel.findOneAndUpdate(
+          { id },
+          { $set: updates },
+          { new: true }
+        ).select("-passwordHash").lean();
+        const idx = this.db.users.findIndex((u) => u.id === id);
+        if (idx !== -1) {
+          this.db.users[idx] = { ...this.db.users[idx], ...updates };
+          this.sync();
+        }
+        if (updated) return { ...updated, id: updated.id };
+      } catch (err) {
+        console.error("MongoDB updateUser error:", err);
+      }
+    }
     const idx = this.db.users.findIndex((u) => u.id === id);
     if (idx === -1) return null;
     const current = this.db.users[idx];
@@ -533,31 +590,74 @@ class DatabaseService {
     return user.passwordHash === hashPassword(plainText);
   }
   // Jobs
-  getJobs() {
+  async getJobs() {
+    if (isMongoDBActive()) {
+      try {
+        const jobs = await JobModel.find().sort({ createdAt: -1 }).lean();
+        return jobs.map((j) => ({ ...j, id: j.id }));
+      } catch (err) {
+        console.error("MongoDB getJobs error:", err);
+      }
+    }
     return this.db.jobs;
   }
-  getJobById(id) {
+  async getJobById(id) {
+    if (isMongoDBActive()) {
+      try {
+        const job = await JobModel.findOne({ id }).lean();
+        if (job) return { ...job, id: job.id };
+      } catch (err) {
+        console.error("MongoDB getJobById error:", err);
+      }
+    }
     return this.db.jobs.find((j) => j.id === id);
   }
-  createJob(jobData) {
+  async createJob(jobData) {
     const newJob = {
       ...jobData,
       id: `job_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       applicantsCount: 0,
       createdAt: (/* @__PURE__ */ new Date()).toISOString()
     };
+    if (isMongoDBActive()) {
+      try {
+        await JobModel.create(newJob);
+      } catch (err) {
+        console.error("MongoDB createJob error:", err);
+      }
+    }
     this.db.jobs.unshift(newJob);
     this.sync();
     return newJob;
   }
-  updateJob(id, updates) {
+  async updateJob(id, updates) {
+    if (isMongoDBActive()) {
+      try {
+        const updated = await JobModel.findOneAndUpdate({ id }, { $set: updates }, { new: true }).lean();
+        const idx = this.db.jobs.findIndex((j) => j.id === id);
+        if (idx !== -1) {
+          this.db.jobs[idx] = { ...this.db.jobs[idx], ...updates };
+          this.sync();
+        }
+        if (updated) return { ...updated, id: updated.id };
+      } catch (err) {
+        console.error("MongoDB updateJob error:", err);
+      }
+    }
     const idx = this.db.jobs.findIndex((j) => j.id === id);
     if (idx === -1) return null;
     this.db.jobs[idx] = { ...this.db.jobs[idx], ...updates };
     this.sync();
     return this.db.jobs[idx];
   }
-  deleteJob(id) {
+  async deleteJob(id) {
+    if (isMongoDBActive()) {
+      try {
+        await JobModel.deleteOne({ id });
+      } catch (err) {
+        console.error("MongoDB deleteJob error:", err);
+      }
+    }
     const initialLen = this.db.jobs.length;
     this.db.jobs = this.db.jobs.filter((j) => j.id !== id);
     if (this.db.jobs.length !== initialLen) {
@@ -567,7 +667,21 @@ class DatabaseService {
     return false;
   }
   // Applications
-  getApplications(filter) {
+  async getApplications(filter) {
+    if (isMongoDBActive()) {
+      try {
+        const query = {};
+        if (filter?.studentId) query.studentId = filter.studentId;
+        if (filter?.jobId) query.jobId = filter.jobId;
+        if (filter?.recruiterCompany) {
+          query.companyName = new RegExp(filter.recruiterCompany, "i");
+        }
+        const apps = await ApplicationModel.find(query).sort({ appliedDate: -1 }).lean();
+        return apps.map((a) => ({ ...a, id: a.id }));
+      } catch (err) {
+        console.error("MongoDB getApplications error:", err);
+      }
+    }
     let list = this.db.applications;
     if (filter?.studentId) {
       list = list.filter((a) => a.studentId === filter.studentId);
@@ -580,7 +694,34 @@ class DatabaseService {
     }
     return list;
   }
-  createApplication(appData) {
+  async createApplication(appData) {
+    if (isMongoDBActive()) {
+      try {
+        const existing = await ApplicationModel.findOne({
+          jobId: appData.jobId,
+          studentId: appData.studentId
+        }).lean();
+        if (existing) {
+          return { ...existing, id: existing.id };
+        }
+        const newApp = {
+          ...appData,
+          id: `app_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          appliedDate: (/* @__PURE__ */ new Date()).toISOString()
+        };
+        await ApplicationModel.create(newApp);
+        await JobModel.updateOne({ id: appData.jobId }, { $inc: { applicantsCount: 1 } });
+        this.db.applications.unshift(newApp);
+        const job = this.db.jobs.find((j) => j.id === appData.jobId);
+        if (job) {
+          job.applicantsCount = (job.applicantsCount || 0) + 1;
+        }
+        this.sync();
+        return newApp;
+      } catch (err) {
+        console.error("MongoDB createApplication error:", err);
+      }
+    }
     const existing = this.db.applications.find(
       (a) => a.jobId === appData.jobId && a.studentId === appData.studentId
     );
@@ -600,7 +741,20 @@ class DatabaseService {
     this.sync();
     return newApp;
   }
-  updateApplication(id, updates) {
+  async updateApplication(id, updates) {
+    if (isMongoDBActive()) {
+      try {
+        const updated = await ApplicationModel.findOneAndUpdate({ id }, { $set: updates }, { new: true }).lean();
+        const idx = this.db.applications.findIndex((a) => a.id === id);
+        if (idx !== -1) {
+          this.db.applications[idx] = { ...this.db.applications[idx], ...updates };
+          this.sync();
+        }
+        if (updated) return { ...updated, id: updated.id };
+      } catch (err) {
+        console.error("MongoDB updateApplication error:", err);
+      }
+    }
     const idx = this.db.applications.findIndex((a) => a.id === id);
     if (idx === -1) return null;
     this.db.applications[idx] = { ...this.db.applications[idx], ...updates };
@@ -608,33 +762,78 @@ class DatabaseService {
     return this.db.applications[idx];
   }
   // Partnerships (MoUs)
-  getPartnerships() {
+  async getPartnerships() {
+    if (isMongoDBActive()) {
+      try {
+        const mous = await PartnershipModel.find().lean();
+        return mous.map((m) => ({ ...m, id: m.id }));
+      } catch (err) {
+        console.error("MongoDB getPartnerships error:", err);
+      }
+    }
     return this.db.partnerships;
   }
-  createPartnership(partnership) {
+  async createPartnership(partnership) {
     const newMoU = {
       ...partnership,
       id: `mou_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
     };
+    if (isMongoDBActive()) {
+      try {
+        await PartnershipModel.create(newMoU);
+      } catch (err) {
+        console.error("MongoDB createPartnership error:", err);
+      }
+    }
     this.db.partnerships.unshift(newMoU);
     this.sync();
     return newMoU;
   }
   // Drives
-  getDrives() {
+  async getDrives() {
+    if (isMongoDBActive()) {
+      try {
+        const drives = await DriveModel.find().lean();
+        return drives.map((d) => ({ ...d, id: d.id }));
+      } catch (err) {
+        console.error("MongoDB getDrives error:", err);
+      }
+    }
     return this.db.drives;
   }
-  createDrive(drive) {
+  async createDrive(drive) {
     const newDrive = {
       ...drive,
       id: `drv_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
     };
+    if (isMongoDBActive()) {
+      try {
+        await DriveModel.create(newDrive);
+      } catch (err) {
+        console.error("MongoDB createDrive error:", err);
+      }
+    }
     this.db.drives.unshift(newDrive);
     this.sync();
     return newDrive;
   }
   // Stats
-  getStats() {
+  async getStats() {
+    if (isMongoDBActive()) {
+      try {
+        const studentCount = await UserModel.countDocuments({ role: "student" });
+        const distinctCompanies = await JobModel.distinct("companyName");
+        const activeMoUs = await PartnershipModel.countDocuments({ status: "active" });
+        return {
+          ...this.db.stats,
+          totalStudentsRegistered: studentCount * 120 + 4200,
+          activeHiringPartners: distinctCompanies.length + 28,
+          totalActiveMoUs: activeMoUs + 18
+        };
+      } catch (err) {
+        console.error("MongoDB getStats error:", err);
+      }
+    }
     return {
       ...this.db.stats,
       totalStudentsRegistered: this.db.users.filter((u) => u.role === "student").length * 120 + 4200,

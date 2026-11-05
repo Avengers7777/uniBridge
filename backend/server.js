@@ -3,30 +3,48 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { dbService } from "./db.js";
+import { connectMongoDB, isMongoDBActive } from "./mongodb.js";
+import { resumeUpload, extractTextFromFile } from "./upload.js";
 import { extractSkillsFromResume, analyzeSkillGap, analyzeCurriculumAlignment } from "./gemini.js";
+
 dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const PORT = Number(process.env.PORT) || 3e3;
+const PORT = Number(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === "production";
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Health Check & Database Status
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
-    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-    service: "NexusCollab Academia-Industry Platform API"
+    timestamp: new Date().toISOString(),
+    service: "NexusCollab Academia-Industry Platform API",
+    database: isMongoDBActive() ? "MongoDB" : "Local JSON Database"
   });
 });
-app.post("/api/auth/login", (req, res) => {
+
+app.get("/api/db-status", (_req, res) => {
+  res.json({
+    database: isMongoDBActive() ? "MongoDB" : "Local JSON Database",
+    isMongoConnected: isMongoDBActive(),
+    mongoUriConfigured: Boolean(process.env.MONGODB_URI)
+  });
+});
+
+// Auth Routes
+app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email) {
       res.status(400).json({ error: "Email is required" });
       return;
     }
-    const user = dbService.getUserByEmail(email);
+    const user = await dbService.getUserByEmail(email);
     if (!user) {
       res.status(401).json({ error: "Invalid email or password" });
       return;
@@ -41,19 +59,20 @@ app.post("/api/auth/login", (req, res) => {
     res.status(500).json({ error: err.message || "Login failed" });
   }
 });
-app.post("/api/auth/register", (req, res) => {
+
+app.post("/api/auth/register", async (req, res) => {
   try {
     const { name, email, role, organization, degree, gpa, skills, targetRoles, password } = req.body;
     if (!name || !email || !role || !organization) {
       res.status(400).json({ error: "Name, email, role, and organization are required." });
       return;
     }
-    const existing = dbService.getUserByEmail(email);
+    const existing = await dbService.getUserByEmail(email);
     if (existing) {
       res.status(400).json({ error: "An account with this email already exists." });
       return;
     }
-    const newUser = dbService.createUser({
+    const newUser = await dbService.createUser({
       name,
       email,
       role,
@@ -70,20 +89,23 @@ app.post("/api/auth/register", (req, res) => {
     res.status(500).json({ error: err.message || "Registration failed" });
   }
 });
-app.get("/api/auth/users", (_req, res) => {
-  res.json({ users: dbService.getUsers() });
+
+app.get("/api/auth/users", async (_req, res) => {
+  res.json({ users: await dbService.getUsers() });
 });
-app.get("/api/auth/users/:id", (req, res) => {
-  const user = dbService.getUserById(req.params.id);
+
+app.get("/api/auth/users/:id", async (req, res) => {
+  const user = await dbService.getUserById(req.params.id);
   if (!user) {
     res.status(404).json({ error: "User not found" });
     return;
   }
   res.json({ user });
 });
-app.patch("/api/auth/users/:id", (req, res) => {
+
+app.patch("/api/auth/users/:id", async (req, res) => {
   try {
-    const updated = dbService.updateUser(req.params.id, req.body);
+    const updated = await dbService.updateUser(req.params.id, req.body);
     if (!updated) {
       res.status(404).json({ error: "User not found" });
       return;
@@ -93,17 +115,20 @@ app.patch("/api/auth/users/:id", (req, res) => {
     res.status(500).json({ error: err.message || "Update failed" });
   }
 });
-app.get("/api/jobs", (_req, res) => {
-  res.json({ jobs: dbService.getJobs() });
+
+// Jobs & Internships
+app.get("/api/jobs", async (_req, res) => {
+  res.json({ jobs: await dbService.getJobs() });
 });
-app.post("/api/jobs", (req, res) => {
+
+app.post("/api/jobs", async (req, res) => {
   try {
     const { title, companyName, roleType, stipendOrSalary, location, requiredSkills } = req.body;
     if (!title || !companyName || !roleType || !stipendOrSalary) {
       res.status(400).json({ error: "Missing required job posting parameters" });
       return;
     }
-    const newJob = dbService.createJob({
+    const newJob = await dbService.createJob({
       ...req.body,
       requiredSkills: Array.isArray(requiredSkills) ? requiredSkills : [],
       preferredSkills: Array.isArray(req.body.preferredSkills) ? req.body.preferredSkills : [],
@@ -119,35 +144,40 @@ app.post("/api/jobs", (req, res) => {
     res.status(500).json({ error: err.message || "Failed to create job posting" });
   }
 });
-app.patch("/api/jobs/:id", (req, res) => {
-  const updated = dbService.updateJob(req.params.id, req.body);
+
+app.patch("/api/jobs/:id", async (req, res) => {
+  const updated = await dbService.updateJob(req.params.id, req.body);
   if (!updated) {
     res.status(404).json({ error: "Job not found" });
     return;
   }
   res.json({ job: updated });
 });
-app.delete("/api/jobs/:id", (req, res) => {
-  const success = dbService.deleteJob(req.params.id);
+
+app.delete("/api/jobs/:id", async (req, res) => {
+  const success = await dbService.deleteJob(req.params.id);
   res.json({ success });
 });
-app.get("/api/applications", (req, res) => {
+
+// Applications
+app.get("/api/applications", async (req, res) => {
   const { studentId, jobId, recruiterCompany } = req.query;
-  const applications = dbService.getApplications({
+  const applications = await dbService.getApplications({
     studentId,
     jobId,
     recruiterCompany
   });
   res.json({ applications });
 });
-app.post("/api/applications", (req, res) => {
+
+app.post("/api/applications", async (req, res) => {
   try {
     const { jobId, studentId, studentName, studentEmail, studentUniversity, studentGpa, studentSkills, jobTitle, companyName, roleType, coverNote } = req.body;
     if (!jobId || !studentId) {
       res.status(400).json({ error: "jobId and studentId are required." });
       return;
     }
-    const job = dbService.getJobById(jobId);
+    const job = await dbService.getJobById(jobId);
     let matchScore = 85;
     let rationale = "Strong applicant profile. Meets GPA eligibility criteria and core skill stack prerequisites.";
     if (job && Array.isArray(studentSkills) && job.requiredSkills.length > 0) {
@@ -157,7 +187,7 @@ app.post("/api/applications", (req, res) => {
       matchScore = Math.min(98, Math.max(70, Math.round(matchCount / job.requiredSkills.length * 100)));
       rationale = `Matches ${matchCount} of ${job.requiredSkills.length} required skill competencies. Candidate meets academic GPA minimum (${studentGpa || 3.5} >= ${job.minGpa}).`;
     }
-    const application = dbService.createApplication({
+    const application = await dbService.createApplication({
       jobId,
       studentId,
       studentName: studentName || "Student Candidate",
@@ -180,9 +210,10 @@ app.post("/api/applications", (req, res) => {
     res.status(500).json({ error: err.message || "Failed to submit application" });
   }
 });
-app.patch("/api/applications/:id", (req, res) => {
+
+app.patch("/api/applications/:id", async (req, res) => {
   try {
-    const updated = dbService.updateApplication(req.params.id, req.body);
+    const updated = await dbService.updateApplication(req.params.id, req.body);
     if (!updated) {
       res.status(404).json({ error: "Application not found" });
       return;
@@ -192,21 +223,24 @@ app.patch("/api/applications/:id", (req, res) => {
     res.status(500).json({ error: err.message || "Failed to update application" });
   }
 });
-app.get("/api/partnerships", (_req, res) => {
-  res.json({ partnerships: dbService.getPartnerships() });
+
+// Partnerships (MoUs)
+app.get("/api/partnerships", async (_req, res) => {
+  res.json({ partnerships: await dbService.getPartnerships() });
 });
-app.post("/api/partnerships", (req, res) => {
+
+app.post("/api/partnerships", async (req, res) => {
   try {
     const { universityName, companyName, mouTitle, signedDate, validUntil, focusAreas, studentInternshipsCommitted, researchBudget } = req.body;
     if (!universityName || !companyName || !mouTitle) {
       res.status(400).json({ error: "University name, company name, and MoU title are required" });
       return;
     }
-    const mou = dbService.createPartnership({
+    const mou = await dbService.createPartnership({
       universityName,
       companyName,
       mouTitle,
-      signedDate: signedDate || (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+      signedDate: signedDate || new Date().toISOString().split("T")[0],
       validUntil: validUntil || "2028-12-31",
       focusAreas: Array.isArray(focusAreas) ? focusAreas : ["Joint Labs", "Student Internships"],
       studentInternshipsCommitted: Number(studentInternshipsCommitted) || 15,
@@ -220,17 +254,20 @@ app.post("/api/partnerships", (req, res) => {
     res.status(500).json({ error: err.message || "Failed to create MoU" });
   }
 });
-app.get("/api/drives", (_req, res) => {
-  res.json({ drives: dbService.getDrives() });
+
+// Placement Drives
+app.get("/api/drives", async (_req, res) => {
+  res.json({ drives: await dbService.getDrives() });
 });
-app.post("/api/drives", (req, res) => {
+
+app.post("/api/drives", async (req, res) => {
   try {
     const { companyName, driveTitle, date, venue, packageOffered } = req.body;
     if (!companyName || !driveTitle) {
       res.status(400).json({ error: "Company and drive title are required" });
       return;
     }
-    const drive = dbService.createDrive({
+    const drive = await dbService.createDrive({
       companyName,
       driveTitle,
       date: date || "2026-11-20",
@@ -247,9 +284,43 @@ app.post("/api/drives", (req, res) => {
     res.status(500).json({ error: err.message || "Failed to create placement drive" });
   }
 });
-app.get("/api/stats", (_req, res) => {
-  res.json({ stats: dbService.getStats() });
+
+// Portal Stats & Analytics
+app.get("/api/stats", async (_req, res) => {
+  res.json({ stats: await dbService.getStats() });
 });
+
+// CV / Resume File Upload & Text Extraction
+app.post("/api/ai/upload-resume", (req, res) => {
+  resumeUpload.single("resume")(req, res, async (err) => {
+    if (err) {
+      res.status(400).json({ error: err.message || "File upload failed." });
+      return;
+    }
+    if (!req.file) {
+      res.status(400).json({ error: "No file uploaded. Please attach a PDF, DOCX, DOC, or TXT file." });
+      return;
+    }
+    try {
+      const extractedText = await extractTextFromFile(req.file.path, req.file.originalname);
+      if (!extractedText || extractedText.trim().length < 20) {
+        res.status(422).json({ error: "Could not extract meaningful text from the uploaded file. Try a text-based PDF or DOCX." });
+        return;
+      }
+      res.json({
+        success: true,
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        extractedText: extractedText.trim(),
+        charCount: extractedText.trim().length
+      });
+    } catch (extractErr) {
+      res.status(422).json({ error: extractErr.message || "Text extraction failed." });
+    }
+  });
+});
+
+// AI Endpoints
 app.post("/api/ai/extract-skills", async (req, res) => {
   try {
     const { resumeText } = req.body;
@@ -263,6 +334,7 @@ app.post("/api/ai/extract-skills", async (req, res) => {
     res.status(500).json({ error: err.message || "Skill extraction failed" });
   }
 });
+
 app.post("/api/ai/skill-gap", async (req, res) => {
   try {
     const { studentSkills, targetRole, jobDescription } = req.body;
@@ -280,6 +352,7 @@ app.post("/api/ai/skill-gap", async (req, res) => {
     res.status(500).json({ error: err.message || "Skill-gap analysis failed" });
   }
 });
+
 app.post("/api/ai/curriculum-align", async (req, res) => {
   try {
     const { department, semester, currentModules } = req.body;
@@ -293,7 +366,10 @@ app.post("/api/ai/curriculum-align", async (req, res) => {
     res.status(500).json({ error: err.message || "Curriculum alignment failed" });
   }
 });
+
 async function startServer() {
+  await connectMongoDB();
+
   if (!isProduction) {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
@@ -313,4 +389,5 @@ async function startServer() {
     console.log(`NexusCollab server listening on http://0.0.0.0:${PORT}`);
   });
 }
+
 startServer();

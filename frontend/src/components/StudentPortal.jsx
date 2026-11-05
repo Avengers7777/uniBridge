@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   Cpu,
@@ -12,7 +12,10 @@ import {
   DollarSign,
   Sparkles,
   Send,
-  X
+  X,
+  FileUp,
+  FileBadge2,
+  Loader2
 } from "lucide-react";
 import { SkillAnalyticsDashboard } from "./SkillAnalyticsDashboard";
 const StudentPortal = () => {
@@ -22,6 +25,71 @@ const StudentPortal = () => {
   const [targetRole, setTargetRole] = useState(user?.targetRoles?.[0] || "Full-Stack Software Engineer");
   const [isExtracting, setIsExtracting] = useState(false);
   const [isAnalyzingGap, setIsAnalyzingGap] = useState(false);
+  // CV Upload states
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleFileUpload = useCallback(async (file) => {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+    const allowedExts = ['.pdf', '.doc', '.docx', '.txt'];
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+
+    if (!allowedTypes.includes(file.type) && !allowedExts.includes(ext)) {
+      showNotification('Invalid file type. Only PDF, DOCX, DOC, TXT allowed.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showNotification('File too large. Maximum size is 5 MB.', 'error');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadedFileName(null);
+
+    const formData = new FormData();
+    formData.append('resume', file);
+
+    try {
+      const res = await fetch('/api/ai/upload-resume', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      setResumeText(data.extractedText);
+      setUploadedFileName(data.fileName);
+      showNotification(`✅ CV uploaded successfully! Extracted ${data.charCount.toLocaleString()} characters from "${data.fileName}". Click "Extract Skills with AI" to analyze.`, 'success');
+    } catch (err) {
+      showNotification(err.message || 'Failed to upload CV. Please try again.', 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [showNotification]);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileUpload(file);
+  }, [handleFileUpload]);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+  const handleDragLeave = () => setIsDragOver(false);
+
   const [skillGapReport, setSkillGapReport] = useState({
     targetRole: "Full-Stack Software Engineer",
     currentSkills: user?.skills || ["React", "TypeScript", "Node.js", "Python", "PostgreSQL", "Docker", "Git"],
@@ -302,11 +370,67 @@ const StudentPortal = () => {
             <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-5">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                  1. Resume Experience & Skills Extractor
+                  1. Resume Experience &amp; Skills Extractor
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  Paste your resume text or past projects to extract verified technical skills with Gemini 3.8 Flash.
+                  Upload your CV file <span className="text-teal-600 dark:text-teal-400 font-medium">(PDF, DOCX, TXT)</span> or paste resume text to extract verified technical skills with Gemini 3.8 Flash.
                 </p>
+              </div>
+
+              {/* CV Upload Drop Zone */}
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file);
+                    e.target.value = '';
+                  }}
+                />
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onClick={() => !isUploading && fileInputRef.current?.click()}
+                  className={`relative cursor-pointer border-2 border-dashed rounded-xl p-5 flex flex-col items-center justify-center gap-2 transition-all ${
+                    isDragOver
+                      ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20'
+                      : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-teal-400 hover:bg-teal-50/50 dark:hover:bg-teal-900/10'
+                  } ${isUploading ? 'pointer-events-none opacity-70' : ''}`}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-7 h-7 text-teal-500 animate-spin" />
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Parsing CV file...</p>
+                    </>
+                  ) : uploadedFileName ? (
+                    <>
+                      <FileBadge2 className="w-7 h-7 text-teal-600 dark:text-teal-400" />
+                      <p className="text-xs font-semibold text-teal-700 dark:text-teal-400 text-center truncate max-w-full px-2">{uploadedFileName}</p>
+                      <p className="text-[11px] text-slate-400">Click to replace file</p>
+                    </>
+                  ) : (
+                    <>
+                      <FileUp className="w-7 h-7 text-slate-400" />
+                      <div className="text-center">
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Drag &amp; drop your CV here
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">or click to browse &nbsp;•&nbsp; PDF, DOCX, TXT &nbsp;•&nbsp; Max 5 MB</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+                <span className="text-[11px] text-slate-400 font-medium">or paste text manually</span>
+                <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
               </div>
 
               <div>
