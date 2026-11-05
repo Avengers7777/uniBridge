@@ -88,13 +88,14 @@ const AuthProvider = ({ children }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password: "demo123" })
       });
-      if (res.ok) {
+      const contentType = res.headers.get("content-type");
+      if (res.ok && contentType && contentType.includes("application/json")) {
         const data = await res.json();
         setUser(data.user);
         localStorage.setItem("nexus_user", JSON.stringify(data.user));
         showNotification(`Logged in as ${data.user.name} (${data.user.role.toUpperCase()})`, "success");
       } else {
-        showNotification("Failed to switch demo account", "error");
+        showNotification("Failed to switch demo account. Check if server is running on http://localhost:3000.", "error");
       }
     } catch (err) {
       console.error(err);
@@ -108,6 +109,10 @@ const AuthProvider = ({ children }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
       });
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        return { success: false, error: "Server connection failed. Please ensure the website is opened at http://localhost:3000." };
+      }
       const data = await res.json();
       if (!res.ok) {
         return { success: false, error: data.error || "Login failed" };
@@ -127,6 +132,10 @@ const AuthProvider = ({ children }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData)
       });
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        return { success: false, error: "Server connection failed. Please ensure the website is opened at http://localhost:3000." };
+      }
       const data = await res.json();
       if (!res.ok) {
         return { success: false, error: data.error || "Registration failed" };

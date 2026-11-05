@@ -89,3 +89,4 @@ export async function extractTextFromFile(filePath, originalName) {
 
   throw new Error(`Unsupported file format: ${ext}`);
 }
+
