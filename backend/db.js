@@ -10,7 +10,11 @@ import {
   DriveModel,
   StatsModel
 } from "./models/index.js";
-const DATA_DIR = path.resolve(import.meta.dirname, "data");
+const ORIGINAL_DATA_DIR = path.resolve(import.meta.dirname, "data");
+const ORIGINAL_DB_FILE = path.join(ORIGINAL_DATA_DIR, "portal-database.json");
+const DATA_DIR = process.env.VERCEL
+  ? path.resolve("/tmp", "data")
+  : ORIGINAL_DATA_DIR;
 const DB_FILE = path.join(DATA_DIR, "portal-database.json");
 function hashPassword(password) {
   return crypto.createHash("sha256").update(password + "_nexus_salt_2026").digest("hex");
@@ -470,6 +474,13 @@ class DatabaseService {
     try {
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, "utf-8");
+        const parsed = JSON.parse(raw);
+        if (parsed.users && parsed.jobs && parsed.applications && parsed.partnerships) {
+          return parsed;
+        }
+      }
+      if (fs.existsSync(ORIGINAL_DB_FILE)) {
+        const raw = fs.readFileSync(ORIGINAL_DB_FILE, "utf-8");
         const parsed = JSON.parse(raw);
         if (parsed.users && parsed.jobs && parsed.applications && parsed.partnerships) {
           return parsed;

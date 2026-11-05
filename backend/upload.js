@@ -4,7 +4,9 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads', 'resumes');
+const UPLOADS_DIR = process.env.VERCEL
+  ? path.resolve('/tmp', 'resumes')
+  : path.resolve(process.cwd(), 'uploads', 'resumes');
 
 // Ensure uploads directory exists
 if (!fs.existsSync(UPLOADS_DIR)) {

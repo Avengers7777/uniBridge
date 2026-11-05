@@ -401,4 +401,9 @@ async function startServer() {
   });
 }
 
-startServer();
+export default app;
+export { startServer };
+
+if (!process.env.VERCEL) {
+  startServer();
+}
