@@ -4,28 +4,36 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const UPLOADS_DIR = process.env.VERCEL
-  ? path.resolve('/tmp', 'resumes')
+
+// On Vercel: use memory storage (no disk write). Locally: use disk storage.
+const IS_VERCEL = Boolean(process.env.VERCEL);
+
+const UPLOADS_DIR = IS_VERCEL
+  ? null
   : path.resolve(process.cwd(), 'uploads', 'resumes');
 
-// Ensure uploads directory exists
-if (!fs.existsSync(UPLOADS_DIR)) {
+// Create local uploads directory if needed
+if (!IS_VERCEL && UPLOADS_DIR && !fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, UPLOADS_DIR);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const baseName = path.basename(file.originalname, ext).replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
-    cb(null, `${baseName}_${Date.now()}${ext}`);
-  }
-});
+// Storage: memory on Vercel, disk locally
+const storage = IS_VERCEL
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (_req, _file, cb) => {
+        cb(null, UPLOADS_DIR);
+      },
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, ext)
+          .replace(/[^a-z0-9_\-]/gi, '_')
+          .toLowerCase();
+        cb(null, `${baseName}_${Date.now()}${ext}`);
+      },
+    });
 
-// File filter
+// File filter — only allow PDF, DOC, DOCX, TXT
 const fileFilter = (_req, file, cb) => {
   const allowedMimes = [
     'application/pdf',
@@ -53,12 +61,19 @@ export const resumeUpload = multer({
 
 /**
  * Extract plain text from an uploaded resume file (PDF, DOCX, TXT).
+ * Works with both disk storage (local) and memory storage (Vercel).
+ * - filePath: path string (disk) or null (memory)
+ * - buffer: Buffer (memory storage on Vercel)
+ * - originalName: original file name for extension detection
  */
-export async function extractTextFromFile(filePath, originalName) {
+export async function extractTextFromFile(filePath, originalName, buffer) {
   const ext = path.extname(originalName).toLowerCase();
 
   // TXT file
   if (ext === '.txt') {
+    if (buffer) {
+      return buffer.toString('utf-8');
+    }
     return fs.readFileSync(filePath, 'utf-8');
   }
 
@@ -66,29 +81,33 @@ export async function extractTextFromFile(filePath, originalName) {
   if (ext === '.docx') {
     try {
       const mammoth = await import('mammoth');
-      const result = await mammoth.extractRawText({ path: filePath });
+      const input = buffer ? { buffer } : { path: filePath };
+      const result = await mammoth.extractRawText(input);
       return result.value;
     } catch (err) {
       throw new Error('Failed to parse DOCX file. Please ensure it is a valid Word document.');
     }
   }
 
-  // PDF file — use pdf-parse via createRequire
+  // PDF file — use pdf-parse via createRequire (avoids ESM issues)
   if (ext === '.pdf') {
     try {
       const pdfParse = require('pdf-parse');
-      const dataBuffer = fs.readFileSync(filePath);
+      const dataBuffer = buffer || fs.readFileSync(filePath);
       const data = await pdfParse(dataBuffer);
       return data.text;
     } catch (err) {
-      throw new Error('Failed to parse PDF file. Please ensure it is a text-based PDF (not an image-only scan).');
+      throw new Error(
+        'Failed to parse PDF file. Please ensure it is a text-based PDF (not an image-only scan).'
+      );
     }
   }
 
   if (ext === '.doc') {
-    throw new Error('Legacy .doc format is not supported for text extraction. Please save as .docx or .pdf and re-upload.');
+    throw new Error(
+      'Legacy .doc format is not supported for text extraction. Please save as .docx or .pdf and re-upload.'
+    );
   }
 
   throw new Error(`Unsupported file format: ${ext}`);
 }
-
