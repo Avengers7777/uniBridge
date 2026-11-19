@@ -301,15 +301,46 @@ const LoginPage = ({ onBackToHome, onSuccessRedirect }) => {
     /* Error Message Animation */
   }
             <AnimatePresence>
-              {errorMessage && <motion.div
-    initial={{ opacity: 0, height: 0 }}
-    animate={{ opacity: 1, height: "auto" }}
-    exit={{ opacity: 0, height: 0 }}
-    className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2"
-  >
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{errorMessage}</span>
-                </motion.div>}
+              {errorMessage && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 overflow-hidden"
+                >
+                  <div className="p-3 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      {/* Multi-line error — newlines \n ko alag lines mein dikhao */}
+                      {errorMessage.split("\n").map((line, i) => (
+                        <p
+                          key={i}
+                          className={`text-xs leading-relaxed ${
+                            i === 0
+                              ? "font-semibold text-rose-700 dark:text-rose-300"
+                              : "text-rose-600 dark:text-rose-400 mt-0.5"
+                          }`}
+                        >
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Helpful tip: wrong port pe hai toh link dikhao */}
+                  {errorMessage.includes("localhost:3000") && (
+                    <div className="px-3 pb-3">
+                      <a
+                        href="http://localhost:3000"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white bg-rose-600 hover:bg-rose-700 px-3 py-1.5 rounded transition-colors"
+                      >
+                        → localhost:3000 pe jaao
+                      </a>
+                    </div>
+                  )}
+                </motion.div>
+              )}
             </AnimatePresence>
 
             {
