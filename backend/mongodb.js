@@ -1,6 +1,14 @@
 import mongoose from 'mongoose';
+import dns from 'node:dns';
 import fs from 'node:fs';
 import path from 'node:path';
+
+// Fix for Windows / ISP DNS resolvers failing on MongoDB SRV records
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+} catch {
+  // Ignore if not supported in environment
+}
 import { fileURLToPath } from 'node:url';
 import {
   UserModel,
