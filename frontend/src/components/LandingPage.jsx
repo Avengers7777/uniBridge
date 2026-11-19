@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
+import { motion } from "motion/react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -11,6 +12,41 @@ import {
   TrendingUp,
   Cpu
 } from "lucide-react";
+
+// ─── Smooth Count-Up Number Component ───────────────────────────────────────
+const AnimatedCounter = ({ value, duration = 1800, decimals = 0, prefix = "", suffix = "" }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let startTimestamp = null;
+    let frameId;
+
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      // Cubic ease-out: starts fast, lands smoothly
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(easeOut * value);
+
+      if (progress < 1) {
+        frameId = requestAnimationFrame(step);
+      } else {
+        setDisplayValue(value);
+      }
+    };
+
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [value, duration]);
+
+  return (
+    <span>
+      {prefix}
+      {displayValue.toFixed(decimals)}
+      {suffix}
+    </span>
+  );
+};
 const LandingPage = ({ onExploreRole, onOpenAuth, onNavigateTab }) => {
   const { loginAsDemoUser } = useAuth();
   const [demoSkillText, setDemoSkillText] = useState(
@@ -79,52 +115,86 @@ const LandingPage = ({ onExploreRole, onOpenAuth, onNavigateTab }) => {
             {
     /* Hero Copy */
   }
-            <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-2 text-xs font-semibold text-teal-800 dark:text-teal-300">
+            {/* Hero Copy with Staggered Entrance Animations */}
+            <motion.div
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="lg:col-span-7 space-y-6"
+            >
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1, duration: 0.5 }}
+                className="inline-flex items-center gap-2 text-xs font-semibold text-teal-800 dark:text-teal-300"
+              >
                 <span>Enterprise EdTech Infrastructure</span>
                 <span aria-hidden="true">·</span>
                 <span>Version 2026 Academic Standard</span>
-              </div>
+              </motion.div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight" style={{ textWrap: "balance" }}>
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
+                className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight"
+                style={{ textWrap: "balance" }}
+              >
                 Unifying Universities, Students, and Industry on a Single AI-Guided Placement Grid.
-              </h1>
+              </motion.h1>
 
-              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
+              <motion.p
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl"
+              >
                 NexusCollab closes the academia-industry gap through automated resume skill extraction, real-time market skill mapping, verified campus drives, and accredited corporate MoUs.
-              </p>
+              </motion.p>
 
-              {
-    /* Action Buttons */
-  }
-              <div className="flex flex-wrap gap-3 pt-2">
-                <button
-    onClick={() => onExploreRole("student")}
-    className="px-5 py-3 text-sm font-semibold text-white bg-slate-900 dark:bg-slate-100 dark:text-slate-900 rounded-lg hover:bg-slate-800 dark:hover:bg-white/90 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 shadow-sm"
-  >
+              {/* Action Buttons with Fade-in and Interactive Hover Lift */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                className="flex flex-wrap gap-3 pt-2"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onExploreRole("student")}
+                  className="px-5 py-3 text-sm font-semibold text-white bg-slate-900 dark:bg-slate-100 dark:text-slate-900 rounded-lg hover:bg-slate-800 dark:hover:bg-white/90 transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 shadow-sm"
+                >
                   <span>Launch Student Portal</span>
                   <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-    onClick={() => onExploreRole("tpo")}
-    className="px-5 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 border border-slate-300 dark:border-slate-700"
-  >
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onExploreRole("tpo")}
+                  className="px-5 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 border border-slate-300 dark:border-slate-700"
+                >
                   <Building2 className="w-4 h-4 text-slate-500" />
                   <span>University Placement Cell</span>
-                </button>
-                <button
-    onClick={() => onExploreRole("recruiter")}
-    className="px-5 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 border border-slate-300 dark:border-slate-700"
-  >
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onExploreRole("recruiter")}
+                  className="px-5 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 border border-slate-300 dark:border-slate-700"
+                >
                   <Briefcase className="w-4 h-4 text-slate-500" />
                   <span>Recruiter Pipeline</span>
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
 
-              {
-    /* Quick Trust Attributes (Clean Unboxed Metadata) */
-  }
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+              {/* Quick Trust Attributes */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400"
+              >
                 <span className="flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                   <span>ABAC Role-Based Access Control</span>
@@ -139,20 +209,23 @@ const LandingPage = ({ onExploreRole, onOpenAuth, onNavigateTab }) => {
                   <CheckCircle2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                   <span>Full-Stack Persistent Database</span>
                 </span>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
 
-            {
-    /* Hero Visual Banner */
-  }
-            <div className="lg:col-span-5">
+            {/* Hero Visual Banner with Subtle Zoom-in Animation */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.25, duration: 0.7, ease: "easeOut" }}
+              className="lg:col-span-5"
+            >
               <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-lg bg-slate-100 dark:bg-slate-800">
                 <img
-    src="/src/assets/images/hero_collaboration_summit_1793431838701.jpg"
-    alt="Higher education technology campus and corporate executives collaborating"
-    className="w-full h-80 sm:h-96 object-cover"
-    referrerPolicy="no-referrer"
-  />
+                  src="/src/assets/images/hero_collaboration_summit_1793431838701.jpg"
+                  alt="Higher education technology campus and corporate executives collaborating"
+                  className="w-full h-80 sm:h-96 object-cover"
+                  referrerPolicy="no-referrer"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-5">
                   <div className="text-white text-xs">
                     <p className="font-semibold text-sm">Academia-Industry Convergence Center</p>
@@ -160,30 +233,36 @@ const LandingPage = ({ onExploreRole, onOpenAuth, onNavigateTab }) => {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
 
-        {
-    /* Claim-to-Proof Quantitative Metric Bar */
-  }
+        {/* Claim-to-Proof Quantitative Metric Bar with Count-Up Animations */}
         <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 py-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               <div>
-                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">94.2%</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+                  <AnimatedCounter value={94.2} decimals={1} suffix="%" />
+                </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Verified Campus Placement Rate</p>
               </div>
               <div>
-                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">₹14.8 LPA</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+                  <AnimatedCounter value={14.8} decimals={1} prefix="₹" suffix=" LPA" />
+                </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Average Engineering Package</p>
               </div>
               <div>
-                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">320+</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+                  <AnimatedCounter value={320} suffix="+" />
+                </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Active Corporate Hiring Partners</p>
               </div>
               <div>
-                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">84</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+                  <AnimatedCounter value={84} />
+                </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Active Institutional MoUs</p>
               </div>
             </div>

@@ -97,6 +97,8 @@ const AuthProvider = ({ children }) => {
     }, 4500);
   };
 
+  const dismissNotification = () => setNotification(null);
+
   // ── Theme effects ──────────────────────────────────────────────────────────
   useEffect(() => {
     const root = document.documentElement;
@@ -263,6 +265,7 @@ const AuthProvider = ({ children }) => {
         logout,
         notification,
         showNotification,
+        dismissNotification,
       }}
     >
       {children}
