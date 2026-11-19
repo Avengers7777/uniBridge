@@ -1,5 +1,8 @@
+import "./config.js";
 import { GoogleGenAI, Type } from "@google/genai";
-const apiKey = process.env.GEMINI_API_KEY;
+import { config } from "./config.js";
+
+const apiKey = config.geminiApiKey && config.geminiApiKey !== "MY_GEMINI_API_KEY" ? config.geminiApiKey : null;
 const ai = apiKey ? new GoogleGenAI({
   apiKey,
   httpOptions: {

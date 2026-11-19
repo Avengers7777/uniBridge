@@ -1,32 +1,52 @@
+import "./config.js";
+import { config } from "./config.js";
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import dotenv from "dotenv";
 import { dbService } from "./db.js";
 import { extractSkillsFromResume, analyzeSkillGap, analyzeCurriculumAlignment } from "./gemini.js";
-dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 const app = express();
-const PORT = Number(process.env.PORT) || 3e3;
-const isProduction = process.env.NODE_ENV === "production";
+const PORT = config.port;
+const isProduction = config.nodeEnv === "production";
+
+// Middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// CORS headers for flexible frontend development
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+// Health check endpoint
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
-    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-    service: "NexusCollab Academia-Industry Platform API"
+    timestamp: new Date().toISOString(),
+    service: "NexusCollab Academia-Industry Platform API",
+    database: dbService.isUsingPostgres ? "PostgreSQL (Connected)" : "Local JSON Database (Active)"
   });
 });
-app.post("/api/auth/login", (req, res) => {
+
+// Auth endpoints
+app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email) {
       res.status(400).json({ error: "Email is required" });
       return;
     }
-    const user = dbService.getUserByEmail(email);
+    const user = await dbService.getUserByEmail(email);
     if (!user) {
       res.status(401).json({ error: "Invalid email or password" });
       return;
@@ -41,19 +61,20 @@ app.post("/api/auth/login", (req, res) => {
     res.status(500).json({ error: err.message || "Login failed" });
   }
 });
-app.post("/api/auth/register", (req, res) => {
+
+app.post("/api/auth/register", async (req, res) => {
   try {
     const { name, email, role, organization, degree, gpa, skills, targetRoles, password } = req.body;
     if (!name || !email || !role || !organization) {
       res.status(400).json({ error: "Name, email, role, and organization are required." });
       return;
     }
-    const existing = dbService.getUserByEmail(email);
+    const existing = await dbService.getUserByEmail(email);
     if (existing) {
       res.status(400).json({ error: "An account with this email already exists." });
       return;
     }
-    const newUser = dbService.createUser({
+    const newUser = await dbService.createUser({
       name,
       email,
       role,
@@ -70,20 +91,32 @@ app.post("/api/auth/register", (req, res) => {
     res.status(500).json({ error: err.message || "Registration failed" });
   }
 });
-app.get("/api/auth/users", (_req, res) => {
-  res.json({ users: dbService.getUsers() });
-});
-app.get("/api/auth/users/:id", (req, res) => {
-  const user = dbService.getUserById(req.params.id);
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
-  res.json({ user });
-});
-app.patch("/api/auth/users/:id", (req, res) => {
+
+app.get("/api/auth/users", async (_req, res) => {
   try {
-    const updated = dbService.updateUser(req.params.id, req.body);
+    const users = await dbService.getUsers();
+    res.json({ users });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to fetch users" });
+  }
+});
+
+app.get("/api/auth/users/:id", async (req, res) => {
+  try {
+    const user = await dbService.getUserById(req.params.id);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to fetch user" });
+  }
+});
+
+app.patch("/api/auth/users/:id", async (req, res) => {
+  try {
+    const updated = await dbService.updateUser(req.params.id, req.body);
     if (!updated) {
       res.status(404).json({ error: "User not found" });
       return;
@@ -93,17 +126,25 @@ app.patch("/api/auth/users/:id", (req, res) => {
     res.status(500).json({ error: err.message || "Update failed" });
   }
 });
-app.get("/api/jobs", (_req, res) => {
-  res.json({ jobs: dbService.getJobs() });
-});
-app.post("/api/jobs", (req, res) => {
+
+// Jobs endpoints
+app.get("/api/jobs", async (_req, res) => {
   try {
-    const { title, companyName, roleType, stipendOrSalary, location, requiredSkills } = req.body;
+    const jobs = await dbService.getJobs();
+    res.json({ jobs });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to fetch jobs" });
+  }
+});
+
+app.post("/api/jobs", async (req, res) => {
+  try {
+    const { title, companyName, roleType, stipendOrSalary, requiredSkills } = req.body;
     if (!title || !companyName || !roleType || !stipendOrSalary) {
       res.status(400).json({ error: "Missing required job posting parameters" });
       return;
     }
-    const newJob = dbService.createJob({
+    const newJob = await dbService.createJob({
       ...req.body,
       requiredSkills: Array.isArray(requiredSkills) ? requiredSkills : [],
       preferredSkills: Array.isArray(req.body.preferredSkills) ? req.body.preferredSkills : [],
@@ -119,45 +160,58 @@ app.post("/api/jobs", (req, res) => {
     res.status(500).json({ error: err.message || "Failed to create job posting" });
   }
 });
-app.patch("/api/jobs/:id", (req, res) => {
-  const updated = dbService.updateJob(req.params.id, req.body);
-  if (!updated) {
-    res.status(404).json({ error: "Job not found" });
-    return;
+
+app.patch("/api/jobs/:id", async (req, res) => {
+  try {
+    const updated = await dbService.updateJob(req.params.id, req.body);
+    if (!updated) {
+      res.status(404).json({ error: "Job not found" });
+      return;
+    }
+    res.json({ job: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to update job" });
   }
-  res.json({ job: updated });
 });
-app.delete("/api/jobs/:id", (req, res) => {
-  const success = dbService.deleteJob(req.params.id);
-  res.json({ success });
+
+app.delete("/api/jobs/:id", async (req, res) => {
+  try {
+    const success = await dbService.deleteJob(req.params.id);
+    res.json({ success });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to delete job" });
+  }
 });
-app.get("/api/applications", (req, res) => {
-  const { studentId, jobId, recruiterCompany } = req.query;
-  const applications = dbService.getApplications({
-    studentId,
-    jobId,
-    recruiterCompany
-  });
-  res.json({ applications });
+
+// Applications endpoints
+app.get("/api/applications", async (req, res) => {
+  try {
+    const { studentId, jobId, recruiterCompany } = req.query;
+    const applications = await dbService.getApplications({ studentId, jobId, recruiterCompany });
+    res.json({ applications });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to fetch applications" });
+  }
 });
-app.post("/api/applications", (req, res) => {
+
+app.post("/api/applications", async (req, res) => {
   try {
     const { jobId, studentId, studentName, studentEmail, studentUniversity, studentGpa, studentSkills, jobTitle, companyName, roleType, coverNote } = req.body;
     if (!jobId || !studentId) {
       res.status(400).json({ error: "jobId and studentId are required." });
       return;
     }
-    const job = dbService.getJobById(jobId);
+    const job = await dbService.getJobById(jobId);
     let matchScore = 85;
     let rationale = "Strong applicant profile. Meets GPA eligibility criteria and core skill stack prerequisites.";
-    if (job && Array.isArray(studentSkills) && job.requiredSkills.length > 0) {
+    if (job && Array.isArray(studentSkills) && job.requiredSkills?.length > 0) {
       const matchCount = job.requiredSkills.filter(
         (reqSkill) => studentSkills.some((s) => s.toLowerCase() === reqSkill.toLowerCase())
       ).length;
       matchScore = Math.min(98, Math.max(70, Math.round(matchCount / job.requiredSkills.length * 100)));
-      rationale = `Matches ${matchCount} of ${job.requiredSkills.length} required skill competencies. Candidate meets academic GPA minimum (${studentGpa || 3.5} >= ${job.minGpa}).`;
+      rationale = `Matches ${matchCount} of ${job.requiredSkills.length} required skill competencies. Candidate meets academic GPA minimum (${studentGpa || 3.5} >= ${job.minGpa || 3.0}).`;
     }
-    const application = dbService.createApplication({
+    const application = await dbService.createApplication({
       jobId,
       studentId,
       studentName: studentName || "Student Candidate",
@@ -180,9 +234,10 @@ app.post("/api/applications", (req, res) => {
     res.status(500).json({ error: err.message || "Failed to submit application" });
   }
 });
-app.patch("/api/applications/:id", (req, res) => {
+
+app.patch("/api/applications/:id", async (req, res) => {
   try {
-    const updated = dbService.updateApplication(req.params.id, req.body);
+    const updated = await dbService.updateApplication(req.params.id, req.body);
     if (!updated) {
       res.status(404).json({ error: "Application not found" });
       return;
@@ -192,21 +247,29 @@ app.patch("/api/applications/:id", (req, res) => {
     res.status(500).json({ error: err.message || "Failed to update application" });
   }
 });
-app.get("/api/partnerships", (_req, res) => {
-  res.json({ partnerships: dbService.getPartnerships() });
+
+// Partnerships (MoUs)
+app.get("/api/partnerships", async (_req, res) => {
+  try {
+    const partnerships = await dbService.getPartnerships();
+    res.json({ partnerships });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to fetch partnerships" });
+  }
 });
-app.post("/api/partnerships", (req, res) => {
+
+app.post("/api/partnerships", async (req, res) => {
   try {
     const { universityName, companyName, mouTitle, signedDate, validUntil, focusAreas, studentInternshipsCommitted, researchBudget } = req.body;
     if (!universityName || !companyName || !mouTitle) {
       res.status(400).json({ error: "University name, company name, and MoU title are required" });
       return;
     }
-    const mou = dbService.createPartnership({
+    const mou = await dbService.createPartnership({
       universityName,
       companyName,
       mouTitle,
-      signedDate: signedDate || (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+      signedDate: signedDate || new Date().toISOString().split("T")[0],
       validUntil: validUntil || "2028-12-31",
       focusAreas: Array.isArray(focusAreas) ? focusAreas : ["Joint Labs", "Student Internships"],
       studentInternshipsCommitted: Number(studentInternshipsCommitted) || 15,
@@ -220,17 +283,25 @@ app.post("/api/partnerships", (req, res) => {
     res.status(500).json({ error: err.message || "Failed to create MoU" });
   }
 });
-app.get("/api/drives", (_req, res) => {
-  res.json({ drives: dbService.getDrives() });
+
+// Placement Drives
+app.get("/api/drives", async (_req, res) => {
+  try {
+    const drives = await dbService.getDrives();
+    res.json({ drives });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to fetch placement drives" });
+  }
 });
-app.post("/api/drives", (req, res) => {
+
+app.post("/api/drives", async (req, res) => {
   try {
     const { companyName, driveTitle, date, venue, packageOffered } = req.body;
     if (!companyName || !driveTitle) {
       res.status(400).json({ error: "Company and drive title are required" });
       return;
     }
-    const drive = dbService.createDrive({
+    const drive = await dbService.createDrive({
       companyName,
       driveTitle,
       date: date || "2026-11-20",
@@ -247,9 +318,18 @@ app.post("/api/drives", (req, res) => {
     res.status(500).json({ error: err.message || "Failed to create placement drive" });
   }
 });
-app.get("/api/stats", (_req, res) => {
-  res.json({ stats: dbService.getStats() });
+
+// Stats endpoint
+app.get("/api/stats", async (_req, res) => {
+  try {
+    const stats = await dbService.getStats();
+    res.json({ stats });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to fetch stats" });
+  }
 });
+
+// AI Endpoints
 app.post("/api/ai/extract-skills", async (req, res) => {
   try {
     const { resumeText } = req.body;
@@ -263,6 +343,7 @@ app.post("/api/ai/extract-skills", async (req, res) => {
     res.status(500).json({ error: err.message || "Skill extraction failed" });
   }
 });
+
 app.post("/api/ai/skill-gap", async (req, res) => {
   try {
     const { studentSkills, targetRole, jobDescription } = req.body;
@@ -280,6 +361,7 @@ app.post("/api/ai/skill-gap", async (req, res) => {
     res.status(500).json({ error: err.message || "Skill-gap analysis failed" });
   }
 });
+
 app.post("/api/ai/curriculum-align", async (req, res) => {
   try {
     const { department, semester, currentModules } = req.body;
@@ -293,12 +375,28 @@ app.post("/api/ai/curriculum-align", async (req, res) => {
     res.status(500).json({ error: err.message || "Curriculum alignment failed" });
   }
 });
+
+// Find available port helper
+async function findAvailablePort(startPort) {
+  const net = await import("node:net");
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on("error", reject);
+    server.listen(startPort, "0.0.0.0", () => {
+      const port = server.address().port;
+      server.close(() => resolve(port));
+    });
+  });
+}
+
+// Start server
 async function startServer() {
   if (!isProduction) {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       root: path.resolve(__dirname, "../frontend"),
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: "spa"
     });
     app.use(vite.middlewares);
@@ -309,8 +407,39 @@ async function startServer() {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`NexusCollab server listening on http://0.0.0.0:${PORT}`);
+
+  let resolvedPort = PORT;
+  try {
+    resolvedPort = await findAvailablePort(PORT);
+    if (resolvedPort !== PORT) {
+      console.log(`Port ${PORT} in use, using port ${resolvedPort} instead`);
+    }
+  } catch (_) {
+    resolvedPort = PORT;
+  }
+
+  const server = app.listen(resolvedPort, "0.0.0.0", () => {
+    console.log(`====================================================`);
+    console.log(`  UniBridge / NexusCollab Server is RUNNING`);
+    console.log(`  URL: http://localhost:${resolvedPort}`);
+    console.log(`  Environment: ${config.nodeEnv}`);
+    console.log(`  Database: ${dbService.isUsingPostgres ? "PostgreSQL (Active)" : "Local JSON Fallback (Active)"}`);
+    console.log(`====================================================`);
+  });
+
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.log(`Port ${resolvedPort} is in use, trying ${resolvedPort + 1}`);
+      setTimeout(() => {
+        server.close();
+        app.listen(resolvedPort + 1, "0.0.0.0", () => {
+          console.log(`NexusCollab server listening on http://localhost:${resolvedPort + 1}`);
+        });
+      }, 100);
+    } else {
+      console.error("Server error:", err);
+    }
   });
 }
+
 startServer();
